@@ -5,9 +5,43 @@ import os
 # --- إعدادات الصفحة الشاملة ---
 st.set_page_config(page_title="منصة وزاريات العراق", page_icon="📚", layout="wide")
 
-# --- التنبيهات العلوية الملونة (الجداول العاجلة) ---
+# --- التنسيق العربي الشامل والمطلق للموقع بالكامل من اليمين لليسار (RTL) ---
 st.markdown("""
     <style>
+    /* تطبيق التوجيه العربي على كامل جسم التطبيق وكل الحاويات */
+    .stApp, div, p, span, h1, h2, h3, h4, h5, h6, label {
+        direction: rtl !important;
+        text-align: right !important;
+    }
+    
+    /* تنسيق حقول الإدخال والقوائم المنسدلة والأزرار لتكون عربية بالكامل */
+    input, textarea, select, .stSelectbox, .stTextInput, .stTextArea {
+        direction: rtl !important;
+        text-align: right !important;
+    }
+    
+    /* محاذاة نصوص الخيارات داخل القوائم المنسدلة لليمين */
+    div[data-baseweb="select"] * {
+        text-align: right !important;
+        direction: rtl !important;
+    }
+    
+    /* تعديل اتجاه ومحاذاة التبويبات (Tabs) لتنطلق من اليمين لليسار */
+    div[data-testid="stTabs"] button {
+        direction: rtl !important;
+        text-align: right !important;
+    }
+    div[data-testid="stTabs"] {
+        direction: rtl !important;
+    }
+    
+    /* تنسيق الأزرار وعناصر النموذج */
+    button[data-testid="baseButton-secondary"], button[data-testid="baseButton-formSubmit"] {
+        float: right !important;
+        direction: rtl !important;
+    }
+    
+    /* التنبيهات العلوية وتنسيق واجهة الموقع */
     .alert-banner-red {
         background-color: #c92a2a;
         color: white;
@@ -51,7 +85,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# --- اسم قاعدة البيانات (wuzari_v6.db) ---
+# --- اسم قاعدة البيانات ---
 DB_NAME = 'wuzari_v6.db'
 
 # --- الاتصال بقاعدة البيانات وتحديث الهيكل البرمجي ---
@@ -59,7 +93,7 @@ def init_db():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     
-    # 1. جدول الأسئلة الوزارية والحلول النموذجية (تم إبقاء اسم answer_path لحفظ النص دون مشاكل)
+    # جدول الأسئلة الوزارية والحلول النموذجية (عمود answer_path سيخزن نص الإجابة مباشرة الآن)
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS questions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -73,7 +107,7 @@ def init_db():
     )
     ''')
     
-    # 2. جدول الجداول الامتحانية الرسمية
+    # جدول الجداول الامتحانية الرسمية
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS schedules (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -84,7 +118,7 @@ def init_db():
     )
     ''')
     
-    # 3. جدول الكتب الدراسية الجديد
+    # جدول الكتب الدراسية
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS textbooks (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -95,18 +129,6 @@ def init_db():
     )
     ''')
     
-    # إدخال بيانات تجريبية أولية للأسئلة في حال كان الجدول فارغاً تماماً
-    cursor.execute("SELECT COUNT(*) FROM questions")
-    if cursor.fetchone()[0] == 0:
-        sample_questions = [
-            ("السادس الاحيائي", "كيمياء", "2018", "الدور الاول", "الفصل الثاني", "ما تأثير تغير الضغط على تفاعل متزن يعادل فيه عدد مولات الغازات؟ وضّح وفق قاعدة لوشاتيليه.", "الجواب النموذجي: يرجح التفاعل نحو اتجاه عدد المولات الأقل عند زيادة الضغط..."),
-            ("السادس الاحيائي", "كيمياء", "2018", "الدور الثاني", "الفصل الأول", "احسب قيمة المسعر الحراري للتفاعل التالي...", "الجواب النموذجي: نستخدم قانون السعة الحرارية q = mcΔT..."),
-        ]
-        cursor.executemany('''
-        INSERT INTO questions (branch, subject, year, role, chapter, question_text, answer_path)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', sample_questions)
-        
     conn.commit()
     conn.close()
 
@@ -135,13 +157,13 @@ def modify_db(sql, params=()):
 st.title("📚 منصة الأرشيف الأكاديمي العراقي الشامل")
 st.write("المنصة الموحدة للطلاب: تصفح الأسئلة الوزارية، الجداول الامتحانية الرسمية، والكتب المنهجية المعتمدة.")
 
-# إنشاء التبويبات الأربعة المتناسقة بالإضافة إلى لوحة التحكم
+# إنشاء التبويبات الخمسة المتناسقة
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📂 تصفح الأسئلة والوزاريات", 
     "📅 أرشيف الجداول الامتحانية", 
     "📘 الكتب الدراسية المنهجية",
     "🔍 محرك البحث الذكي",
-    "🔐 لوحة التحكم (رفع الأسئلة)"
+    "🔐 لوحة التحكم (رفع الأسئلة والأجوبة)"
 ])
 
 
@@ -204,11 +226,12 @@ with tab1:
             with st.container():
                 st.info(f"📅 السنة: {res[0]} | 🛑 {res[1]} | 📖 {res[2]}")
                 st.write(f"**السؤال:**")
-                st.code(res[3], language="text") # عرض السؤال في قالب واضح ومميز
+                st.info(res[3])
                 
-                # عرض الحل مباشرة هنا بشكل نص منسدل ومريح للطالب
-                with st.expander("✨ اضغط هنا لمشاهدة حل السؤال النموذجي مباشرة"):
-                    st.write(res[4])
+                # عرض الحل مباشرة على شكل نص داخل قائمة منسدلة أنيقة
+                if res[4]:
+                    with st.expander("✨ اضغط هنا لمشاهدة حل السؤال النموذجي"):
+                        st.write(res[4])
                 st.write("---")
     else:
         st.warning("⚠️ لا توجد أسئلة مضافة تطابق هذا التحديد حالياً.")
@@ -243,6 +266,8 @@ with tab2:
             st.warning(f"📅 الجدول الرسمي لعام {sch[0]} - {sch[1]} ({sch_branch})")
             st.markdown(f"[🔗 اضغط هنا لفتح أو تحميل الجدول الوزاري المعتمد]({sch[2]})")
             st.write("---")
+    else:
+        st.info("⚠️ لم يتم رفع الجدول الخاص بهذه الاختيارات بعد.")
 
 
 # --- التبويب الثالث: أرشيف وقائمة الكتب الدراسية المنهجية ---
@@ -270,6 +295,7 @@ with tab3:
                 st.markdown(f"📖 **{bk[0]}** - الطبعة الرسمية المعتمدة لوزارة التربية")
             with col_b2:
                 st.markdown(f"[📥 تحميل الكتاب (PDF)]({bk[1]})")
+            st.write("<hr style='margin:0.5em 0; border:0; border-top:1px dashed #ddd;' />", unsafe_allow_html=True)
 
 
 # --- التبويب الرابع: محرك البحث الذكي المباشر ---
@@ -283,31 +309,32 @@ with tab4:
             for res in search_results:
                 with st.expander(f"📍 {res[0]} | {res[1]} - السنة: {res[2]} ({res[3]})"):
                     st.write(f"**السؤال:** {res[5]}")
-                    st.write(f"**الحـل:** {res[6]}")
+                    if res[6]:
+                        st.write("**الإجابة النموذجية:**")
+                        st.success(res[6])
 
 
-# --- التبويب الخامس: لوحة التحكم لرفع الأسئلة كـ نصوص ---
+# --- التبويب الخامس: لوحة التحكم المنسقة بالكامل RTL ---
 with tab5:
-    st.subheader("🔐 لوحة إدارة وإضافة الأسئلة الوزارية")
+    st.subheader("🔐 لوحة إدارة وإضافة الأسئلة والحلول الوزارية")
     password = st.text_input("الرجاء إدخال كلمة مرور الإدارة للاستمرار:", type="password")
     
     if password == "admin123":
         st.success("🔓 تم تسجيل الدخول بنجاح بصفتك مديراً للموقع. يمكنك الآن إضافة الأسئلة الجديدة:")
         
         with st.form("add_question_form"):
-            st.write("📝 **استمارة إضافة سؤال وجواب وزاري بنص مباشر:**")
+            st.write("📝 **استمارة إضافة سؤال وزاري وحل نصي جديد:**")
             
             new_branch = st.selectbox("المرحلة / الفرع:", ["السادس الاحيائي", "السادس التطبيقي", "السادس الادبي", "الثالث المتوسط", "السادس الابتدائي"])
             new_subject = st.selectbox("المادة:", ["احياء", "كيمياء", "فيزياء", "رياضيات", "عربي", "انكليزي", "اسلامية"])
             new_year = st.text_input("السنة الدراسية (مثال: 2013):", placeholder="2013")
             new_role = st.selectbox("الدور:", ["الدور الاول", "الدور الثاني", "الدور الثالث", "التمهيدي"])
-            new_chapter = st.text_input("الفصل / الجزء (مثال: الفصل الثالث):", "شامل لكافة الفصول")
+            new_chapter = st.text_input("الفصل / الجزء (مثال: الفصل الأول):", "شامل لكافة الفصول")
             
-            # الصناديق الكبيرة المناسبة لكتابة وتعديل النصوص مباشرة
-            new_text = st.text_area("✍️ نص السؤال الوزاري بالكامل:")
-            new_answer_text = st.text_area("✍️ نص الإجابة النموذجية للسؤال بالكامل:")
+            new_text = st.text_area("نص السؤال الوزاري بالكامل:", placeholder="اكتب هنا نص السؤال باللغة العربية...")
+            new_answer_text = st.text_area("نص الإجابة النموذجية للسؤال (تظهر مباشرة للطالب):", placeholder="اكتب أو الصق هنا حل السؤال النموذجي بالكامل...")
             
-            submit_btn = st.form_submit_button("🚀 حفظ واعتماد السؤال في الموقع")
+            submit_btn = st.form_submit_button("🚀 حفظ واعتماد السؤال والحل في الموقع")
             
             if submit_btn:
                 if new_year and new_text and new_answer_text:
@@ -316,8 +343,8 @@ with tab5:
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                     """
                     modify_db(sql_insert, (new_branch, new_subject, new_year, new_role, new_chapter, new_text, new_answer_text))
-                    st.success(f"🎉 تم بنجاح حفظ السؤال والجواب لعام {new_year} مادة {new_subject} وعرضهما في الموقع!")
+                    st.success(f"🎉 تم بنجاح حفظ السؤال والحل النصي لعام {new_year} مادة {new_subject} في قاعدة البيانات!")
                 else:
-                    st.error("❌ يرجى ملء حقول السنة، نص السؤال، ونص الإجابة لإتمام عملية الحفظ.")
+                    st.error("❌ يرجى ملء حقول السنة، نص السؤال، ونص الإجابة النموذجية لإتمام الحفظ.")
     elif password != "":
         st.error("❌ كلمة المرور غير صحيحة.")
