@@ -1,5 +1,6 @@
 import streamlit as st
 import sqlite3
+import os
 
 # --- إعدادات الصفحة الشاملة ---
 st.set_page_config(page_title="منصة وزاريات العراق", page_icon="📚", layout="wide")
@@ -50,10 +51,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+# --- اسم قاعدة البيانات الجديدة لتجنب التضارب ---
+DB_NAME = 'wuzari_v6.db'
+
 # --- الاتصال بقاعدة البيانات وتحديث الهيكل البرمجي ---
 def init_db():
-    # نستخدم قاعدة بيانات محدثة بالكامل لضمان بناء الجداول بدون أي مشاكل تعارض
-    conn = sqlite3.connect('wuzari_v5.db')
+    conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     
     # 1. جدول الأسئلة الوزارية والحلول النموذجية
@@ -140,11 +143,12 @@ def init_db():
     conn.commit()
     conn.close()
 
+# تشغيل التهيئة تلقائياً
 init_db()
 
 # --- دالة الاستعلام من قاعدة البيانات ---
 def query_db(sql, params=()):
-    conn = sqlite3.connect('wuzari_v5.db')
+    conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     cursor.execute(sql, params)
     results = cursor.fetchall()
@@ -187,18 +191,20 @@ with tab1:
         else:
             subjects = ["رياضيات", "علوم", "عربي", "انكليزي", "اسلامية", "اجتماعيات"]
             
-        subject_choice = st.selectbox("اختر المادة:", subjects)
+        subject_choice = st.selectbox("اختر المادة:", subjects, key="subject_main")
         
     with col3:
         year_choice = st.selectbox(
             "السنة:", 
-            ["الكل", "2027", "2026", "2025", "2024", "2023", "2022", "2021", "2020", "2019", "2018"]
+            ["الكل", "2027", "2026", "2025", "2024", "2023", "2022", "2021", "2020", "2019", "2018"],
+            key="year_main"
         )
         
     with col4:
         role_choice = st.selectbox(
             "الدور:", 
-            ["الكل", "الدور الاول", "الدور الثاني", "الدور الثالث", "التمهيدي"]
+            ["الكل", "الدور الاول", "الدور الثاني", "الدور الثالث", "التمهيدي"],
+            key="role_main"
         )
 
     # بناء استعلام الفلاتر للأسئلة
@@ -239,7 +245,7 @@ with tab2:
     with col_sch1:
         sch_branch = st.selectbox("اختر المرحلة (للجدول):", ["السادس الاحيائي", "السادس التطبيقي", "السادس الادبي", "السادس الابتدائي", "الثالث المتوسط"], key="sb")
     with col_sch2:
-        sch_year = st.selectbox("سنة الجدول:", ["الكل", "2027", "2026", "2025", "2024", "2023", "2022", "2021", "2020", "2019", "2018"], key="sy")
+        sch_year = st.selectbox("سنة الجدول:", ["الكل", "2026", "2025", "2024", "2023", "2022", "2021"], key="sy")
     with col_sch3:
         sch_role = st.selectbox("دور الجدول:", ["الكل", "الدور الاول", "الدور الثاني", "الدور الثالث", "التمهيدي"], key="sr")
         
@@ -266,7 +272,7 @@ with tab2:
         st.info("⚠️ لم يتم رفع الجدول الخاص بهذه الاختيارات في أرشيف قاعدة البيانات بعد.")
 
 
-# --- التبويب الثالث: أرشيف وقائمة الكتب الدراسية المنهجية (الميزة الجديدة المضافة) ---
+# --- التبويب الثالث: أرشيف وقائمة الكتب الدراسية المنهجية ---
 with tab3:
     st.subheader("📘 الحقيبة المدرسية - تحميل الكتب الدراسية الرسمية")
     st.write("تصفح وحمل كتب وزارة التربية العراقية الرسمية والحديثة المخصصة لمرحلتك الدراسية:")
@@ -274,7 +280,7 @@ with tab3:
     col_bk1, col_bk2 = st.columns(2)
     
     with col_bk1:
-        stage_choice = st.selectbox("اختر المرحلة العامة:", ["المرحلة الابتدائية", "المرحلة المتوسطة", "المرحلة الاعدادية"])
+        stage_choice = st.selectbox("اختر المرحلة العامة:", ["المرحلة الابتدائية", "المرحلة المتوسطة", "المرحلة الاعدادية"], key="stage_bk")
         
     with col_bk2:
         if stage_choice == "المرحلة الابتدائية":
@@ -284,17 +290,16 @@ with tab3:
         else:
             grades = ["الصف الرابع الإعدادي", "الصف الخامس الإعدادي", "الصف السادس العلمي", "الصف السادس الادبي"]
             
-        grade_choice = st.selectbox("اختر الصف الدراسي المحدّد:", grades)
+        grade_choice = st.selectbox("اختر الصف الدراسي المحدّد:", grades, key="grade_bk")
         
-    # الاستعلام عن الكتب بناءً على اختيارات القائمة المنسدلة لـ (المرحلة العامة والصف الدراسي)
+    # الاستعلام عن الكتب
     sql_books = "SELECT book_name, download_url FROM textbooks WHERE stage = ? AND grade = ?"
     book_results = query_db(sql_books, (stage_choice, grade_choice))
     
     st.write("---")
     if book_results:
-        st.success(f"📚 تم العثور على {len(book_results)} كتاب منهجى متاح لـ {grade_choice}:")
+        st.success(f"📚 تم العثور على {len(book_results)} كتاب منهجي متاح لـ {grade_choice}:")
         
-        # عرض الكتب المكتشفة في جداول / شبكة منسقة وخفيفة
         for bk in book_results:
             col_b1, col_b2 = st.columns([3, 1])
             with col_b1:
@@ -307,9 +312,9 @@ with tab3:
 
 
 # --- التبويب الرابع: محرك البحث الذكي المباشر ---
-with tab3 if 'tab4' not in locals() else tab4:
+with tab4:
     st.subheader("🔍 محرك البحث الشامل في نصوص الأسئلة")
-    search_query = st.text_input("اكتب كلمة مفتاحية (مثال: دي موافر، متسعة، لوشاتيليه):", placeholder="ابدأ الكتابة هنا...")
+    search_query = st.text_input("اكتب كلمة مفتاحية (مثال: دي موافر، متسعة، لوشاتيليه):", placeholder="ابدأ الكتابة هنا...", key="search_bar")
     
     if search_query:
         sql_search = "SELECT branch, subject, year, role, chapter, question_text, answer_path FROM questions WHERE question_text LIKE ?"
