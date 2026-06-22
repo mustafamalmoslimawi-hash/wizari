@@ -51,7 +51,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# --- اسم قاعدة البيانات الجديدة لتجنب التضارب ---
+# --- اسم قاعدة البيانات (wuzari_v6.db) لضمان عدم حدوث تضارب الأخطاء السابقة ---
 DB_NAME = 'wuzari_v6.db'
 
 # --- الاتصال بقاعدة البيانات وتحديث الهيكل البرمجي ---
@@ -84,7 +84,7 @@ def init_db():
     )
     ''')
     
-    # 3. جدول الكتب الدراسية الجديد (المرحلة الابتدائية، المتوسطة، الاعدادية)
+    # 3. جدول الكتب الدراسية الجديد
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS textbooks (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -95,14 +95,13 @@ def init_db():
     )
     ''')
     
-    # إدخال بيانات تجريبية للأسئلة في حال كان الجدول فارغاً
+    # إدخال بيانات تجريبية أولية للأسئلة في حال كان الجدول فارغاً تماماً
     cursor.execute("SELECT COUNT(*) FROM questions")
     if cursor.fetchone()[0] == 0:
         sample_questions = [
             ("السادس الاحيائي", "كيمياء", "2018", "الدور الاول", "الفصل الثاني", "ما تأثير تغير الضغط على تفاعل متزن يعادل فيه عدد مولات الغازات؟ وضّح وفق قاعدة لوشاتيليه.", "https://example.com/sol1.pdf"),
             ("السادس الاحيائي", "كيمياء", "2018", "الدور الثاني", "الفصل الأول", "احسب قيمة المسعر الحراري للتفاعل التالي...", "https://example.com/sol2.pdf"),
             ("السادس الاحيائي", "فيزياء", "2024", "التمهيدي", "الفصل الأول", "ماذا يحصل لفرق الجهد بين صفيحتي متسعة عند إدخال عازل؟", "https://example.com/sol3.pdf"),
-            ("السادس الاحيائي", "فيزياء", "2026", "الدور الاول", "الفصل الثاني", "سؤال وزاري افتراضي للتأكد من عمل الفلتر لعام 2026...", "https://example.com/sol4.pdf"),
             ("الثالث المتوسط", "رياضيات", "2024", "الدور الاول", "الفصل الاول", "حل المتباينة المركبة التالية ومثل الحل على خط الأعداد...", "https://example.com/sol5.pdf")
         ]
         cursor.executemany('''
@@ -115,25 +114,19 @@ def init_db():
     if cursor.fetchone()[0] == 0:
         sample_schedules = [
             ("السادس الاحيائي", "2026", "الدور الاول", "https://example.com/schedule_sads_2026_d1.pdf"),
-            ("الثالث المتوسط", "2026", "الدور الاول", "https://example.com/schedule_thalth_2026_d1.pdf"),
-            ("السادس الاحيائي", "2024", "الدور الثاني", "https://example.com/schedule_sads_2024_d2.pdf"),
-            ("الثالث المتوسط", "2023", "التمهيدي", "https://example.com/schedule_thalth_2023_pre.pdf")
+            ("الثالث المتوسط", "2026", "الدور الاول", "https://example.com/schedule_thalth_2026_d1.pdf")
         ]
         cursor.executemany('''
         INSERT INTO schedules (branch, year, role, schedule_path)
         VALUES (?, ?, ?, ?)
         ''', sample_schedules)
 
-    # إدخال بيانات تجريبية للكتب الدراسية لمختلف المراحل الثلاثة
+    # إدخال بيانات تجريبية للكتب الدراسية
     cursor.execute("SELECT COUNT(*) FROM textbooks")
     if cursor.fetchone()[0] == 0:
         sample_books = [
-            ("المرحلة الابتدائية", "الصف السادس الابتدائي", "كتاب الرياضيات", "https://example.com/math_primary_6.pdf"),
-            ("المرحلة الابتدائية", "الصف السادس الابتدائي", "كتاب العلوم", "https://example.com/science_primary_6.pdf"),
             ("المرحلة المتوسطة", "الصف الثالث المتوسط", "كتاب الرياضيات - الجزء الأول", "https://example.com/math_mid_3_p1.pdf"),
-            ("المرحلة المتوسطة", "الصف الثالث المتوسط", "كتاب الكيمياء", "https://example.com/chemistry_mid_3.pdf"),
-            ("المرحلة الاعدادية", "الصف السادس العلمي", "كتاب الفيزياء", "https://example.com/physics_high_6.pdf"),
-            ("المرحلة الاعدادية", "الصف السادس العلمي", "كتاب الكيمياء", "https://example.com/chemistry_high_6.pdf")
+            ("المرحلة الاعدادية", "الصف السادس العلمي", "كتاب الفيزياء", "https://example.com/physics_high_6.pdf")
         ]
         cursor.executemany('''
         INSERT INTO textbooks (stage, grade, book_name, download_url)
@@ -155,17 +148,26 @@ def query_db(sql, params=()):
     conn.close()
     return results
 
+# --- دالة الإدخال والكتابة في قاعدة البيانات ---
+def modify_db(sql, params=()):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute(sql, params)
+    conn.commit()
+    conn.close()
+
 
 # --- واجهة المستخدم الرئيسية (Streamlit UI) ---
 st.title("📚 منصة الأرشيف الأكاديمي العراقي الشامل")
 st.write("المنصة الموحدة للطلاب: تصفح الأسئلة الوزارية، الجداول الامتحانية الرسمية، والكتب المنهجية المعتمدة.")
 
-# إنشاء التبويبات الأربعة المتناسقة والمنظمة
-tab1, tab2, tab3, tab4 = st.tabs([
+# إنشاء التبويبات الأربعة المتناسقة بالإضافة إلى لوحة التحكم
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📂 تصفح الأسئلة والوزاريات", 
     "📅 أرشيف الجداول الامتحانية", 
     "📘 الكتب الدراسية المنهجية",
-    "🔍 محرك البحث الذكي"
+    "🔍 محرك البحث الذكي",
+    "🔐 لوحة التحكم (رفع الأسئلة)"
 ])
 
 
@@ -185,7 +187,7 @@ with tab1:
             if branch_choice == "السادس الادبي":
                 subjects = ["عربي", "انكليزي", "رياضيات", "تاريخ", "جغرافيا", "اقتصاد", "اسلامية"]
             else:
-                subjects = ["كيمياء", "فيزياء", "احياء", "رياضيات", "عربي", "انكليزي", "اسلامية"]
+                subjects = ["احياء", "كيمياء", "فيزياء", "رياضيات", "عربي", "انكليزي", "اسلامية"]
         elif branch_choice == "الثالث المتوسط":
             subjects = ["رياضيات", "كيمياء", "فيزياء", "احياء", "عربي", "انكليزي", "اسلامية", "اجتماعيات"]
         else:
@@ -196,7 +198,7 @@ with tab1:
     with col3:
         year_choice = st.selectbox(
             "السنة:", 
-            ["الكل", "2027", "2026", "2025", "2024", "2023", "2022", "2021", "2020", "2019", "2018"],
+            ["الكل", "2027", "2026", "2025", "2024", "2023", "2022", "2021", "2020", "2019", "2018", "2013"],
             key="year_main"
         )
         
@@ -228,31 +230,27 @@ with tab1:
             with st.container():
                 st.info(f"📅 السنة: {res[0]} | 🛑 {res[1]} | 📖 {res[2]}")
                 st.write(f"**السؤال:** {res[3]}")
-                st.markdown(f"[📥 تحميل الحل النموذجي المعتمد (PDF)]({res[4]})")
+                st.markdown(f"[📥 تحميل الحل النموذجي المعتمد (PDF / رابط)]({res[4]})")
                 st.write("---")
     else:
         st.warning("⚠️ لا توجد أسئلة مضافة تطابق هذا التحديد حالياً.")
 
 
-# --- التبويب الثاني: أرشيف الجداول الامتحانية (لكافة السنين والأدوار) ---
+# --- التبويب الثاني: أرشيف الجداول الامتحانية ---
 with tab2:
     st.markdown('<div id="schedules_section"></div>', unsafe_allow_html=True)
     st.subheader("📋 القوائم المنسدلة للجداول الامتحانية الرسمية")
-    st.write("اختر تفاصيل السنة والدور للمرحلة المحددة للحصول على جدول الامتحانات الوزارية الرسمي الصادر من وزارة التربية:")
     
     col_sch1, col_sch2, col_sch3 = st.columns(3)
-    
     with col_sch1:
         sch_branch = st.selectbox("اختر المرحلة (للجدول):", ["السادس الاحيائي", "السادس التطبيقي", "السادس الادبي", "السادس الابتدائي", "الثالث المتوسط"], key="sb")
     with col_sch2:
-        sch_year = st.selectbox("سنة الجدول:", ["الكل", "2026", "2025", "2024", "2023", "2022", "2021"], key="sy")
+        sch_year = st.selectbox("سنة الجدول:", ["الكل", "2026", "2025", "2024", "2023"], key="sy")
     with col_sch3:
-        sch_role = st.selectbox("دور الجدول:", ["الكل", "الدور الاول", "الدور الثاني", "الدور الثالث", "التمهيدي"], key="sr")
+        sch_role = st.selectbox("دور الجدول:", ["الكل", "الدور الاول", "الدور الثاني", "التمهيدي"], key="sr")
         
-    # بناء استعلام البحث في جداول الامتحانات
     sql_sch = "SELECT year, role, schedule_path FROM schedules WHERE branch = ?"
     params_sch = [sch_branch]
-    
     if sch_year != "الكل":
         sql_sch += " AND year = ?"
         params_sch.append(sch_year)
@@ -261,45 +259,35 @@ with tab2:
         params_sch.append(sch_role)
         
     sch_results = query_db(sql_sch, tuple(params_sch))
-    
     st.write("---")
     if sch_results:
         for sch in sch_results:
             st.warning(f"📅 الجدول الرسمي لعام {sch[0]} - {sch[1]} ({sch_branch})")
-            st.markdown(f"[🔗 اضغط هنا لفتح أو تحميل الجدول الوزاري المعتمد (PDF / صورة)]({sch[2]})")
+            st.markdown(f"[🔗 اضغط هنا لفتح أو تحميل الجدول الوزاري المعتمد]({sch[2]})")
             st.write("---")
     else:
-        st.info("⚠️ لم يتم رفع الجدول الخاص بهذه الاختيارات في أرشيف قاعدة البيانات بعد.")
+        st.info("⚠️ لم يتم رفع الجدول الخاص بهذه الاختيارات بعد.")
 
 
 # --- التبويب الثالث: أرشيف وقائمة الكتب الدراسية المنهجية ---
 with tab3:
     st.subheader("📘 الحقيبة المدرسية - تحميل الكتب الدراسية الرسمية")
-    st.write("تصفح وحمل كتب وزارة التربية العراقية الرسمية والحديثة المخصصة لمرحلتك الدراسية:")
-    
     col_bk1, col_bk2 = st.columns(2)
-    
     with col_bk1:
         stage_choice = st.selectbox("اختر المرحلة العامة:", ["المرحلة الابتدائية", "المرحلة المتوسطة", "المرحلة الاعدادية"], key="stage_bk")
-        
     with col_bk2:
         if stage_choice == "المرحلة الابتدائية":
-            grades = ["الصف الأول الابتدائي", "الصف الثاني الابتدائي", "الصف الثالث الابتدائي", "الصف الرابع الابتدائي", "الصف الخامس الابتدائي", "الصف السادس الابتدائي"]
+            grades = ["الصف السادس الابتدائي"]
         elif stage_choice == "المرحلة المتوسطة":
-            grades = ["الصف الأول المتوسط", "الصف الثاني المتوسط", "الصف الثالث المتوسط"]
+            grades = ["الصف الثالث المتوسط"]
         else:
-            grades = ["الصف الرابع الإعدادي", "الصف الخامس الإعدادي", "الصف السادس العلمي", "الصف السادس الادبي"]
-            
+            grades = ["الصف السادس العلمي", "الصف السادس الادبي"]
         grade_choice = st.selectbox("اختر الصف الدراسي المحدّد:", grades, key="grade_bk")
         
-    # الاستعلام عن الكتب
     sql_books = "SELECT book_name, download_url FROM textbooks WHERE stage = ? AND grade = ?"
     book_results = query_db(sql_books, (stage_choice, grade_choice))
-    
     st.write("---")
     if book_results:
-        st.success(f"📚 تم العثور على {len(book_results)} كتاب منهجي متاح لـ {grade_choice}:")
-        
         for bk in book_results:
             col_b1, col_b2 = st.columns([3, 1])
             with col_b1:
@@ -307,24 +295,53 @@ with tab3:
             with col_b2:
                 st.markdown(f"[📥 تحميل الكتاب (PDF)]({bk[1]})")
             st.write("<hr style='margin:0.5em 0; border:0; border-top:1px dashed #ddd;' />", unsafe_allow_html=True)
-    else:
-        st.info("⚠️ سيتم إضافة وتحديث روابط الكتب الخاصة بهذا الصف قريباً جداً في النظام.")
 
 
 # --- التبويب الرابع: محرك البحث الذكي المباشر ---
 with tab4:
     st.subheader("🔍 محرك البحث الشامل في نصوص الأسئلة")
-    search_query = st.text_input("اكتب كلمة مفتاحية (مثال: دي موافر، متسعة، لوشاتيليه):", placeholder="ابدأ الكتابة هنا...", key="search_bar")
-    
+    search_query = st.text_input("اكتب كلمة مفتاحية للبحث السريع:", placeholder="ابدأ الكتابة هنا...", key="search_bar")
     if search_query:
         sql_search = "SELECT branch, subject, year, role, chapter, question_text, answer_path FROM questions WHERE question_text LIKE ?"
         search_results = query_db(sql_search, (f'%{search_query}%',))
-        
         if search_results:
-            st.success(f"تم العثور على {len(search_results)} نتيجة:")
             for res in search_results:
                 with st.expander(f"📍 {res[0]} | {res[1]} - السنة: {res[2]} ({res[3]})"):
                     st.write(f"**السؤال:** {res[5]}")
                     st.markdown(f"[🔗 رابط الحل النموذجي المباشر]({res[6]})")
-        else:
-            st.warning("❌ لم يتم العثور على أي سؤال يحتوي على هذه الكلمة الكودية.")
+
+
+# --- التبويب الخامس الجديد: لوحة التحكم لرفع الأسئلة والملازم والأجوبة ---
+with tab5:
+    st.subheader("🔐 لوحة إدارة وإضافة الأسئلة الوزارية")
+    password = st.text_input("الرجاء إدخال كلمة مرور الإدارة للاستمرار:", type="password")
+    
+    if password == "admin123":
+        st.success("🔓 تم تسجيل الدخول بنجاح بصفتك مديراً للموقع. يمكنك الآن إضافة الأسئلة الجديدة:")
+        
+        with st.form("add_question_form"):
+            st.write("📝 **استمارة إضافة سؤال وزاري جديد:**")
+            
+            # حقول الإدخال المتناسبة مع ملفاتك الجديدة
+            new_branch = st.selectbox("المرحلة / الفرع:", ["السادس الاحيائي", "السادس التطبيقي", "السادس الادبي", "الثالث المتوسط", "السادس الابتدائي"])
+            new_subject = st.selectbox("المادة:", ["احياء", "كيمياء", "فيزياء", "رياضيات", "عربي", "انكليزي", "اسلامية"])
+            new_year = st.text_input("السنة الدراسية (مثال: 2013):", placeholder="2013")
+            new_role = st.selectbox("الدور:", ["الدور الاول", "الدور الثاني", "الدور الثالث", "التمهيدي"])
+            new_chapter = st.text_input("الفصل / الجزء (مثال: الفصل الأول):", "شامل لكافة الفصول")
+            new_text = st.text_area("نص السؤال (أو اكتب وصفاً للسؤال الوزاري):", "اكتب هنا نص السؤال الأول المأخوذ من الملف Q1...")
+            new_url = st.text_input("رابط ملف الحل/السؤال (URL):", placeholder="ضع هنا الرابط الذي حصلت عليه بعد رفع صور Q1 أو Q2")
+            
+            submit_btn = st.form_submit_button("🚀 حفظ واعتماد السؤال في الموقع")
+            
+            if submit_btn:
+                if new_year and new_text and new_url:
+                    sql_insert = """
+                    INSERT INTO questions (branch, subject, year, role, chapter, question_text, answer_path)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """
+                    modify_db(sql_insert, (new_branch, new_subject, new_year, new_role, new_chapter, new_text, new_url))
+                    st.success(f"🎉 تم بنجاح حفظ السؤال لعام {new_year} مادة {new_subject} واعتماده في قاعدة البيانات!")
+                else:
+                    st.error("❌ يرجى ملء حقول السنة، نص السؤال، والرابط لإتمام الحفظ بنجاح.")
+    elif password != "":
+        st.error("❌ كلمة المرور غير صحيحة.")
