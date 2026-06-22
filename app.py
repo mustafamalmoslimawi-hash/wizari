@@ -51,7 +51,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# --- اسم قاعدة البيانات (wuzari_v6.db) لضمان عدم حدوث تضارب الأخطاء السابقة ---
+# --- اسم قاعدة البيانات (wuzari_v6.db) ---
 DB_NAME = 'wuzari_v6.db'
 
 # --- الاتصال بقاعدة البيانات وتحديث الهيكل البرمجي ---
@@ -59,7 +59,7 @@ def init_db():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     
-    # 1. جدول الأسئلة الوزارية والحلول النموذجية
+    # 1. جدول الأسئلة الوزارية والحلول النموذجية (تم إبقاء اسم answer_path لحفظ النص دون مشاكل)
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS questions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -99,39 +99,13 @@ def init_db():
     cursor.execute("SELECT COUNT(*) FROM questions")
     if cursor.fetchone()[0] == 0:
         sample_questions = [
-            ("السادس الاحيائي", "كيمياء", "2018", "الدور الاول", "الفصل الثاني", "ما تأثير تغير الضغط على تفاعل متزن يعادل فيه عدد مولات الغازات؟ وضّح وفق قاعدة لوشاتيليه.", "https://example.com/sol1.pdf"),
-            ("السادس الاحيائي", "كيمياء", "2018", "الدور الثاني", "الفصل الأول", "احسب قيمة المسعر الحراري للتفاعل التالي...", "https://example.com/sol2.pdf"),
-            ("السادس الاحيائي", "فيزياء", "2024", "التمهيدي", "الفصل الأول", "ماذا يحصل لفرق الجهد بين صفيحتي متسعة عند إدخال عازل؟", "https://example.com/sol3.pdf"),
-            ("الثالث المتوسط", "رياضيات", "2024", "الدور الاول", "الفصل الاول", "حل المتباينة المركبة التالية ومثل الحل على خط الأعداد...", "https://example.com/sol5.pdf")
+            ("السادس الاحيائي", "كيمياء", "2018", "الدور الاول", "الفصل الثاني", "ما تأثير تغير الضغط على تفاعل متزن يعادل فيه عدد مولات الغازات؟ وضّح وفق قاعدة لوشاتيليه.", "الجواب النموذجي: يرجح التفاعل نحو اتجاه عدد المولات الأقل عند زيادة الضغط..."),
+            ("السادس الاحيائي", "كيمياء", "2018", "الدور الثاني", "الفصل الأول", "احسب قيمة المسعر الحراري للتفاعل التالي...", "الجواب النموذجي: نستخدم قانون السعة الحرارية q = mcΔT..."),
         ]
         cursor.executemany('''
         INSERT INTO questions (branch, subject, year, role, chapter, question_text, answer_path)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', sample_questions)
-        
-    # إدخال بيانات تجريبية للجداول الامتحانية
-    cursor.execute("SELECT COUNT(*) FROM schedules")
-    if cursor.fetchone()[0] == 0:
-        sample_schedules = [
-            ("السادس الاحيائي", "2026", "الدور الاول", "https://example.com/schedule_sads_2026_d1.pdf"),
-            ("الثالث المتوسط", "2026", "الدور الاول", "https://example.com/schedule_thalth_2026_d1.pdf")
-        ]
-        cursor.executemany('''
-        INSERT INTO schedules (branch, year, role, schedule_path)
-        VALUES (?, ?, ?, ?)
-        ''', sample_schedules)
-
-    # إدخال بيانات تجريبية للكتب الدراسية
-    cursor.execute("SELECT COUNT(*) FROM textbooks")
-    if cursor.fetchone()[0] == 0:
-        sample_books = [
-            ("المرحلة المتوسطة", "الصف الثالث المتوسط", "كتاب الرياضيات - الجزء الأول", "https://example.com/math_mid_3_p1.pdf"),
-            ("المرحلة الاعدادية", "الصف السادس العلمي", "كتاب الفيزياء", "https://example.com/physics_high_6.pdf")
-        ]
-        cursor.executemany('''
-        INSERT INTO textbooks (stage, grade, book_name, download_url)
-        VALUES (?, ?, ?, ?)
-        ''', sample_books)
         
     conn.commit()
     conn.close()
@@ -171,7 +145,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 ])
 
 
-# --- التبويب الأول: تصفح الأسئلة والأجوبة النموذجية ---
+# --- التبويب الأول: تصفح الأسئلة والأجوبة النموذجية النصية ---
 with tab1:
     st.subheader("🗂️ تصفح الأرشيف الوزاري للمواد والحلول")
     col1, col2, col3, col4 = st.columns(4)
@@ -229,8 +203,12 @@ with tab1:
         for res in results:
             with st.container():
                 st.info(f"📅 السنة: {res[0]} | 🛑 {res[1]} | 📖 {res[2]}")
-                st.write(f"**السؤال:** {res[3]}")
-                st.markdown(f"[📥 تحميل الحل النموذجي المعتمد (PDF / رابط)]({res[4]})")
+                st.write(f"**السؤال:**")
+                st.code(res[3], language="text") # عرض السؤال في قالب واضح ومميز
+                
+                # عرض الحل مباشرة هنا بشكل نص منسدل ومريح للطالب
+                with st.expander("✨ اضغط هنا لمشاهدة حل السؤال النموذجي مباشرة"):
+                    st.write(res[4])
                 st.write("---")
     else:
         st.warning("⚠️ لا توجد أسئلة مضافة تطابق هذا التحديد حالياً.")
@@ -265,8 +243,6 @@ with tab2:
             st.warning(f"📅 الجدول الرسمي لعام {sch[0]} - {sch[1]} ({sch_branch})")
             st.markdown(f"[🔗 اضغط هنا لفتح أو تحميل الجدول الوزاري المعتمد]({sch[2]})")
             st.write("---")
-    else:
-        st.info("⚠️ لم يتم رفع الجدول الخاص بهذه الاختيارات بعد.")
 
 
 # --- التبويب الثالث: أرشيف وقائمة الكتب الدراسية المنهجية ---
@@ -294,7 +270,6 @@ with tab3:
                 st.markdown(f"📖 **{bk[0]}** - الطبعة الرسمية المعتمدة لوزارة التربية")
             with col_b2:
                 st.markdown(f"[📥 تحميل الكتاب (PDF)]({bk[1]})")
-            st.write("<hr style='margin:0.5em 0; border:0; border-top:1px dashed #ddd;' />", unsafe_allow_html=True)
 
 
 # --- التبويب الرابع: محرك البحث الذكي المباشر ---
@@ -308,10 +283,10 @@ with tab4:
             for res in search_results:
                 with st.expander(f"📍 {res[0]} | {res[1]} - السنة: {res[2]} ({res[3]})"):
                     st.write(f"**السؤال:** {res[5]}")
-                    st.markdown(f"[🔗 رابط الحل النموذجي المباشر]({res[6]})")
+                    st.write(f"**الحـل:** {res[6]}")
 
 
-# --- التبويب الخامس الجديد: لوحة التحكم لرفع الأسئلة والملازم والأجوبة ---
+# --- التبويب الخامس: لوحة التحكم لرفع الأسئلة كـ نصوص ---
 with tab5:
     st.subheader("🔐 لوحة إدارة وإضافة الأسئلة الوزارية")
     password = st.text_input("الرجاء إدخال كلمة مرور الإدارة للاستمرار:", type="password")
@@ -320,28 +295,29 @@ with tab5:
         st.success("🔓 تم تسجيل الدخول بنجاح بصفتك مديراً للموقع. يمكنك الآن إضافة الأسئلة الجديدة:")
         
         with st.form("add_question_form"):
-            st.write("📝 **استمارة إضافة سؤال وزاري جديد:**")
+            st.write("📝 **استمارة إضافة سؤال وجواب وزاري بنص مباشر:**")
             
-            # حقول الإدخال المتناسبة مع ملفاتك الجديدة
             new_branch = st.selectbox("المرحلة / الفرع:", ["السادس الاحيائي", "السادس التطبيقي", "السادس الادبي", "الثالث المتوسط", "السادس الابتدائي"])
             new_subject = st.selectbox("المادة:", ["احياء", "كيمياء", "فيزياء", "رياضيات", "عربي", "انكليزي", "اسلامية"])
             new_year = st.text_input("السنة الدراسية (مثال: 2013):", placeholder="2013")
             new_role = st.selectbox("الدور:", ["الدور الاول", "الدور الثاني", "الدور الثالث", "التمهيدي"])
-            new_chapter = st.text_input("الفصل / الجزء (مثال: الفصل الأول):", "شامل لكافة الفصول")
-            new_text = st.text_area("نص السؤال (أو اكتب وصفاً للسؤال الوزاري):", "اكتب هنا نص السؤال الأول المأخوذ من الملف Q1...")
-            new_url = st.text_input("رابط ملف الحل/السؤال (URL):", placeholder="ضع هنا الرابط الذي حصلت عليه بعد رفع صور Q1 أو Q2")
+            new_chapter = st.text_input("الفصل / الجزء (مثال: الفصل الثالث):", "شامل لكافة الفصول")
+            
+            # الصناديق الكبيرة المناسبة لكتابة وتعديل النصوص مباشرة
+            new_text = st.text_area("✍️ نص السؤال الوزاري بالكامل:")
+            new_answer_text = st.text_area("✍️ نص الإجابة النموذجية للسؤال بالكامل:")
             
             submit_btn = st.form_submit_button("🚀 حفظ واعتماد السؤال في الموقع")
             
             if submit_btn:
-                if new_year and new_text and new_url:
+                if new_year and new_text and new_answer_text:
                     sql_insert = """
                     INSERT INTO questions (branch, subject, year, role, chapter, question_text, answer_path)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                     """
-                    modify_db(sql_insert, (new_branch, new_subject, new_year, new_role, new_chapter, new_text, new_url))
-                    st.success(f"🎉 تم بنجاح حفظ السؤال لعام {new_year} مادة {new_subject} واعتماده في قاعدة البيانات!")
+                    modify_db(sql_insert, (new_branch, new_subject, new_year, new_role, new_chapter, new_text, new_answer_text))
+                    st.success(f"🎉 تم بنجاح حفظ السؤال والجواب لعام {new_year} مادة {new_subject} وعرضهما في الموقع!")
                 else:
-                    st.error("❌ يرجى ملء حقول السنة، نص السؤال، والرابط لإتمام الحفظ بنجاح.")
+                    st.error("❌ يرجى ملء حقول السنة، نص السؤال، ونص الإجابة لإتمام عملية الحفظ.")
     elif password != "":
         st.error("❌ كلمة المرور غير صحيحة.")
