@@ -5,7 +5,7 @@ import os
 # --- PAGE CONFIGURATION ---
 st.set_page_config(page_title="منصة وزاريات العراق", page_icon="📚", layout="wide")
 
-# --- CUSTOM CSS FOR RTL AND LOOK & FEEL ---
+# --- CUSTOM CSS FOR RTL AND HIDING STREAMLIT ELEMENTS ---
 st.markdown("""
     <style>
     /* Global RTL applied to entire app and standard containers */
@@ -76,14 +76,17 @@ st.markdown("""
         font-weight: bold;
     }
     
-    /* 🛠️ MODIFICATION FOR APP CONVERSION 🛠️ */
-    /* Hide Streamlit elements to give a native app feel on WebView */
+    /* 🛠️ تعديل برمجى قوي لإخفاء كل ما يخص الستريملت في الأعلى والأسفل 🛠️ */
     #MainMenu {visibility: hidden;}
     header {visibility: hidden;}
-    footer {visibility: hidden;}
+    footer {visibility: hidden !important; display: none !important;} /* إخفاء التذييل السفلي تماماً */
     div[data-testid="stStatusWidget"] {visibility: hidden;}
     [data-testid="stDecoration"] {display: none;}
     .viewerBadge_container__1QSob {display: none !important;}
+    div[data-testid="stFooter"] {display: none !important;} /* إخفاء علامة Made with Streamlit الجديدة */
+    
+    /* إخفاء شريط الإشعارات أو الأخطاء الافتراضي المتواجد بالأسفل إن وجد */
+    footer a {display:none !important;}
     
     </style>
     <div class="alert-banner-red">
@@ -103,7 +106,7 @@ def init_db():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     
-    # Table for Ministrial Questions and Model Answers
+    # جدول الأسئلة الوزارية والحلول
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS questions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -117,7 +120,7 @@ def init_db():
     )
     ''')
     
-    # Table for Official Exam Schedules
+    # جدول الجداول الامتحانية الرسمية
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS schedules (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -128,7 +131,7 @@ def init_db():
     )
     ''')
     
-    # Table for Textbooks
+    # جدول الكتب الدراسية
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS textbooks (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -142,7 +145,6 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Run initialization automatically
 init_db()
 
 # --- HELPER FUNCTIONS FOR DB INTERACTIONS ---
@@ -166,7 +168,6 @@ def modify_db(sql, params=()):
 st.title("📚 منصة الأرشيف الأكاديمي العراقي الشامل")
 st.write("المنصة الموحدة للطلاب: تصفح الأسئلة الوزارية، الجداول الامتحانية الرسمية، والكتب المنهجية المعتمدة.")
 
-# Creating 5 distinct tabs for organization
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📂 تصفح الأسئلة والوزاريات", 
     "📅 أرشيف الجداول الامتحانية", 
@@ -201,7 +202,6 @@ with tab1:
         subject_choice = st.selectbox("اختر المادة:", subjects, key="subject_main")
         
     with col3:
-        # Years range from 2013 to 2030, showing newest first for browsing convenience
         year_choice = st.selectbox(
             "السنة:", 
             ["الكل", "2030", "2029", "2028", "2027", "2026", "2025", "2024", "2023", "2022", "2021", "2020", "2019", "2018", "2017", "2016", "2015", "2014", "2013"],
@@ -215,7 +215,7 @@ with tab1:
             key="role_main"
         )
 
-    # Building SQL query dynamically based on filters
+    # الاستعلام من قاعدة البيانات بناءً على الفلاتر
     sql = "SELECT year, role, chapter, question_text, answer_path FROM questions WHERE branch = ? AND subject = ?"
     params = [branch_choice, subject_choice]
     
@@ -238,7 +238,7 @@ with tab1:
                 st.write(f"**السؤال:**")
                 st.info(res[3])
                 
-                # Model answer is text-based and displayed within an expander
+                # الرفع اليدوي المباشر للنص
                 if res[4]:
                     with st.expander("✨ اضغط هنا لمشاهدة حل السؤال النموذجي"):
                         st.write(res[4])
@@ -249,7 +249,6 @@ with tab1:
 
 # --- TAB 2: EXAM SCHEDULES ARCHIVE ---
 with tab2:
-    # Anchor point for navigation from banners
     st.markdown('<div id="schedules_section"></div>', unsafe_allow_html=True)
     st.subheader("📋 القوائم المنسدلة للجداول الامتحانية الرسمية")
     
@@ -257,7 +256,6 @@ with tab2:
     with col_sch1:
         sch_branch = st.selectbox("اختر المرحلة (للجدول):", ["السادس الاحيائي", "السادس التطبيقي", "السادس الادبي", "السادس الابتدائي", "الثالث المتوسط"], key="sb")
     with col_sch2:
-        # Year list also updated here to 2013-2030 range
         sch_year = st.selectbox("سنة الجدول:", ["الكل", "2030", "2029", "2028", "2027", "2026", "2025", "2024", "2023", "2022", "2021", "2020", "2019", "2018", "2017", "2016", "2015", "2014", "2013"], key="sy")
     with col_sch3:
         sch_role = st.selectbox("دور الجدول:", ["الكل", "الدور الاول", "الدور الثاني", "التمهيدي"], key="sr")
@@ -276,7 +274,6 @@ with tab2:
     if sch_results:
         for sch in sch_results:
             st.warning(f"📅 الجدول الرسمي لعام {sch[0]} - {sch[1]} ({sch_branch})")
-            # Schedule path is treated as an external URL for downloading/opening
             st.markdown(f"[🔗 اضغط هنا لفتح أو تحميل الجدول الوزاري المعتمد]({sch[2]})")
             st.write("---")
     else:
@@ -307,7 +304,6 @@ with tab3:
             with col_b1:
                 st.markdown(f"📖 **{bk[0]}** - الطبعة الرسمية المعتمدة لوزارة التربية")
             with col_b2:
-                # Textbooks are downloaded as PDF via URL
                 st.markdown(f"[📥 تحميل الكتاب (PDF)]({bk[1]})")
             st.write("<hr style='margin:0.5em 0; border:0; border-top:1px dashed #ddd;' />", unsafe_allow_html=True)
 
@@ -317,47 +313,40 @@ with tab4:
     st.subheader("🔍 محرك البحث الشامل في نصوص الأسئلة")
     search_query = st.text_input("اكتب كلمة مفتاحية للبحث السريع:", placeholder="ابدأ الكتابة هنا...", key="search_bar")
     if search_query:
-        # Full-text search using SQL LIKE operator
         sql_search = "SELECT branch, subject, year, role, chapter, question_text, answer_path FROM questions WHERE question_text LIKE ?"
         search_results = query_db(sql_search, (f'%{search_query}%',))
         if search_results:
             for res in search_results:
-                # Using expanders to show metadata in the title and details inside
-                with st.expander(f"📍 {res[0]} | {res[subject_choice]} - السنة: {res[2]} ({res[3]})"):
+                with st.expander(f"📍 {res[0]} | {res[1]} - السنة: {res[2]} ({res[3]})"):
                     st.write(f"**السؤال:** {res[5]}")
                     if res[6]:
                         st.write("**الإجابة النموذجية:**")
                         st.success(res[6])
 
 
-# --- TAB 5: ADMIN CONTROL PANEL (PASSWORD PROTECTED) ---
+# --- TAB 5: ADMIN CONTROL PANEL ---
 with tab5:
     st.subheader("🔐 لوحة إدارة وإضافة الأسئلة والحلول الوزارية")
     password = st.text_input("الرجاء إدخال كلمة مرور الإدارة للاستمرار:", type="password")
     
-    # Simple hardcoded password check for demo purposes
     if password == "admin123":
         st.success("🔓 تم تسجيل الدخول بنجاح بصفتك مديراً للموقع. يمكنك الآن إضافة الأسئلة الجديدة:")
         
-        # Form for adding new questions and text-based answers
         with st.form("add_question_form"):
             st.write("📝 **استمارة إضافة سؤال وزاري وحل نصي جديد:**")
             
             new_branch = st.selectbox("المرحلة / الفرع:", ["السادس الاحيائي", "السادس التطبيقي", "السادس الادبي", "الثالث المتوسط", "السادس الابتدائي"])
-            new_subject = st.selectbox("المادة:", ["احياء", "كيمياء", "فيزياء", "رياضيات", "عربي", "انكليزي", "اسلامية"])
-            # Required format for year input
+            new_subject = st.selectbox("المادة:", ["احياء", "كيمياء", "فيزياء", "رياضيات", "عربي", "انكليزي", "اسلامية", "تاريخ", "جغرافيا", "اقتصاد", "علوم", "اجتماعيات"])
             new_year = st.text_input("السنة الدراسية (مثال: 2026):", placeholder="2026")
             new_role = st.selectbox("الدور:", ["الدور الاول", "الدور الثاني", "الدور الثالث", "التمهيدي"])
             new_chapter = st.text_input("الفصل / الجزء (مثال: الفصل الأول):", "شامل لكافة الفصول")
             
             new_text = st.text_area("نص السؤال الوزاري بالكامل:", placeholder="اكتب هنا نص السؤال باللغة العربية...")
-            # Answers are now text inputted directly into a text area
             new_answer_text = st.text_area("نص الإجابة النموذجية للسؤال (تظهر مباشرة للطالب):", placeholder="اكتب أو الصق هنا حل السؤال النموذجي بالكامل...")
             
             submit_btn = st.form_submit_button("🚀 حفظ واعتماد السؤال والحل في الموقع")
             
             if submit_btn:
-                # Basic validation: ensure required text fields are not empty
                 if new_year and new_text and new_answer_text:
                     sql_insert = """
                     INSERT INTO questions (branch, subject, year, role, chapter, question_text, answer_path)
