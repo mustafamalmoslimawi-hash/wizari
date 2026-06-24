@@ -5,7 +5,7 @@ import os
 # --- إعدادات الصفحة الشاملة ---
 st.set_page_config(page_title="منصة وزاريات العراق", page_icon="📚", layout="wide")
 
-# --- التالتنسيق العربي الشامل والمطلق للموقع بالكامل من اليمين لليسار (RTL) ---
+# --- التالتنسيق العربي الشامل والمطلق للموقع بالكامل من اليمين لليسار (RTL) وإخفاء عناصر Streamlit ---
 st.markdown("""
     <style>
     /* تطبيق التوجيه العربي على كامل جسم التطبيق وكل الحاويات */
@@ -40,6 +40,14 @@ st.markdown("""
         float: right !important;
         direction: rtl !important;
     }
+    
+    /* 🛠️ إخفاء عناصر Streamlit وشريط GitHub لتهيئة التطبيق للهاتف 🛠️ */
+    #MainMenu {visibility: hidden;}
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+    div[data-testid="stStatusWidget"] {visibility: hidden;}
+    [data-testid="stDecoration"] {display: none;}
+    .viewerBadge_container__1QSob {display: none !important;}
     
     /* التنبيهات العلوية وتنسيق واجهة الموقع */
     .alert-banner-red {
